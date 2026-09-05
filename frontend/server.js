@@ -4,10 +4,11 @@ const path = require('path');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 const app = express();
-const initialPort = Number(process.env.PORT) || 3001;
+const initialPort = Number(process.env.PORT) || 3000;
+const frontendDir = path.resolve(__dirname);
 
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(frontendDir));
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -81,22 +82,32 @@ app.post('/api/chat', async (req, res) => {
 });
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(frontendDir, 'index.html'));
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  const server = app.listen(initialPort, () => {
-    console.log(`Portfolio server running on http://localhost:${initialPort}`);
-  });
+const server = app.listen(initialPort, () => {
+  console.log(`Portfolio server running on http://localhost:${initialPort}`);
+});
 
-  server.on('error', (error) => {
-    if (error.code === 'EADDRINUSE') {
-      console.error(`Port ${initialPort} is already in use.`);
-      process.exit(1);
-    }
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    const fallbackPort = initialPort + 1;
+    console.warn(`Port ${initialPort} is busy, retrying on ${fallbackPort}`);
+    const fallbackServer = app.listen(fallbackPort, () => {
+      console.log(`Portfolio server running on http://localhost:${fallbackPort}`);
+    });
 
-    throw error;
-  });
-}
+    fallbackServer.on('error', (fallbackError) => {
+      if (fallbackError.code === 'EADDRINUSE') {
+        console.error(`Port ${fallbackPort} is also in use.`);
+        process.exit(1);
+      }
+      throw fallbackError;
+    });
+    return;
+  }
+
+  throw error;
+});
 
 module.exports = app;
