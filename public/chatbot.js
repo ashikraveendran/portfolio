@@ -70,10 +70,6 @@ function appendTerminalImage(src) {
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
 
-function isIdentityPrompt(message) {
-  return /^(who are you|who r you|what are you|what is this chatbot|what's this chatbot)\??$/i.test(message.trim());
-}
-
 function clearTerminal() {
   terminalOutput.innerHTML = '';
   terminalOutput.appendChild(promptRow);
@@ -93,11 +89,6 @@ terminalInput.addEventListener('keydown', async (event) => {
   const message = terminalInput.value.trim();
   if (!message) return;
 
-  // --- DEBUG LOGGING: remove once issue is confirmed fixed ---
-  console.log('[debug] raw input:', JSON.stringify(message));
-  console.log('[debug] identity match:', isIdentityPrompt(message));
-  // --- end debug logging ---
-
   if (message.toLowerCase() === 'clear') {
     clearTerminal();
     return;
@@ -108,23 +99,14 @@ terminalInput.addEventListener('keydown', async (event) => {
   terminalInput.disabled = true;
   updateTerminalCursorPosition();
 
-  if (isIdentityPrompt(message)) {
-    appendTerminalLine('assistant', "I'm Ashik Raveendran's portfolio chatbot. I can help with his profile, education, experience, skills, and projects.");
-    terminalInput.disabled = false;
-    terminalInput.focus();
-    updateTerminalCursorPosition();
-    return;
-  }
-
   try {
     const result = await askGroq(message);
-    console.log('[debug] askGroq raw response:', result); // remove once issue is confirmed fixed
     appendTerminalLine('assistant', result.reply);
     if (result.image) {
       appendTerminalImage(result.image);
     }
   } catch (error) {
-    console.error('[debug] askGroq error:', error); // remove once issue is confirmed fixed
+    console.error('[chatbot] request failed:', error);
     appendTerminalLine('assistant', 'Sorry, under maintenance.');
   } finally {
     terminalInput.disabled = false;
