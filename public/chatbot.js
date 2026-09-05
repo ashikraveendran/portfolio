@@ -90,6 +90,10 @@ function isOffensivePrompt(message) {
   return offensivePatterns.some((pattern) => lower.includes(pattern));
 }
 
+function isIdentityPrompt(message) {
+  return /^(who are you|who r you|what are you|what is this chatbot|what's this chatbot)\??$/i.test(message.trim());
+}
+
 function isVeryUnrelatedPrompt(message) {
   const lower = message.toLowerCase();
   if (!lower.trim()) return false;
@@ -173,6 +177,14 @@ terminalInput.addEventListener('keydown', async (event) => {
   if (isRestrictedPrompt(message) || isOffensivePrompt(message)) {
     appendTerminalLine('assistant', 'Permission denied.');
     appendTerminalImage('whoru.jpg');
+    terminalInput.disabled = false;
+    terminalInput.focus();
+    updateTerminalCursorPosition();
+    return;
+  }
+
+  if (isIdentityPrompt(message)) {
+    appendTerminalLine('assistant', "I'm Ashik Raveendran's portfolio chatbot. I can help with his profile, education, experience, skills, and projects.");
     terminalInput.disabled = false;
     terminalInput.focus();
     updateTerminalCursorPosition();
