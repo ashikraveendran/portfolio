@@ -9,12 +9,20 @@ const initialPort = Number(process.env.PORT) || 3001;
 app.use(express.json());
 app.use(express.static(__dirname));
 
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 app.post('/api/chat', async (req, res) => {
   try {
     const { message } = req.body || {};
     if (!message || typeof message !== 'string') {
+      console.warn('[chat] Missing or invalid message body');
       return res.status(400).json({ error: 'Message is required.' });
     }
+
+    console.log('[chat] Incoming request:', message.slice(0, 120));
 
     const contextText = await fs.readFile(path.join(__dirname, 'portfolio-context.json'), 'utf8');
     const context = JSON.parse(contextText);
@@ -57,14 +65,17 @@ app.post('/api/chat', async (req, res) => {
 
     if (!groqResponse.ok) {
       const errorText = await groqResponse.text();
+      console.error('[chat] Groq API error:', groqResponse.status, errorText);
       return res.status(502).json({ error: errorText || 'Groq request failed.' });
     }
 
     const data = await groqResponse.json();
     const reply = data.choices?.[0]?.message?.content?.trim() || "I'm Ashik Raveendran's portfolio chatbot. I can help with his profile, education, experience, skills, and projects.";
 
+    console.log('[chat] Groq reply preview:', reply.slice(0, 120));
     return res.json({ reply });
   } catch (error) {
+    console.error('[chat] Unhandled error:', error);
     return res.status(500).json({ error: error.message || 'Server error' });
   }
 });
