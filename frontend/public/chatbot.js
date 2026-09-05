@@ -1,6 +1,6 @@
 const CHAT_API_URL = window.location.hostname === 'localhost'
   ? `${window.location.origin}/api/chat`
-  : 'https://your-api-project.vercel.app/api/chat';
+  : 'https://chatbotapi-eight.vercel.app/api/chat';
 
 async function loadPortfolioContext() {
   try {
