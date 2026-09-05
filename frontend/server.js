@@ -5,10 +5,10 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 
 const app = express();
 const initialPort = Number(process.env.PORT) || 3000;
-const frontendDir = path.resolve(__dirname);
+const publicDir = path.resolve(__dirname, 'public');
 
 app.use(express.json());
-app.use(express.static(frontendDir));
+app.use(express.static(publicDir));
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -82,7 +82,7 @@ app.post('/api/chat', async (req, res) => {
 });
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendDir, 'index.html'));
+  res.sendFile(path.join(publicDir, 'index.html'));
 });
 
 const server = app.listen(initialPort, () => {
