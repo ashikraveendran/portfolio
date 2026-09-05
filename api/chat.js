@@ -39,8 +39,8 @@ async function classifyMessage(apiKey, message) {
         { role: 'system', content: classifierPrompt },
         { role: 'user', content: message },
       ],
-      temperature: 0,
-      max_tokens: 4,
+      temperature: 0.3,
+      max_tokens: 10,
     }),
   });
 
