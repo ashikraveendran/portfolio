@@ -54,7 +54,7 @@ module.exports = async function handler(req, res) {
           { role: 'system', content: systemText },
           { role: 'user', content: message },
         ],
-        temperature: 0.6,
+        temperature: 0.8,
         max_tokens: 220,
         top_p: 1,
       }),
