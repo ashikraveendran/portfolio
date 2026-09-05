@@ -84,21 +84,19 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-function startServer(port) {
-  const server = app.listen(port, () => {
-    console.log(`Portfolio server running on http://localhost:${port}`);
+if (process.env.NODE_ENV !== 'production') {
+  const server = app.listen(initialPort, () => {
+    console.log(`Portfolio server running on http://localhost:${initialPort}`);
   });
 
   server.on('error', (error) => {
     if (error.code === 'EADDRINUSE') {
-      const nextPort = port + 1;
-      console.warn(`Port ${port} is busy. Retrying on ${nextPort}...`);
-      startServer(nextPort);
-      return;
+      console.error(`Port ${initialPort} is already in use.`);
+      process.exit(1);
     }
 
     throw error;
   });
 }
 
-startServer(initialPort);
+module.exports = app;
