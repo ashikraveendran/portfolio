@@ -1,4 +1,5 @@
-const context = require('../portfolio-context.json');
+const path = require('path');
+const context = require(path.join(__dirname, '..', 'frontend', 'portfolio-context.json'));
 
 module.exports = async function handler(req, res) {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);

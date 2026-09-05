@@ -1,3 +1,7 @@
+const CHAT_API_URL = window.location.hostname === 'localhost'
+  ? `${window.location.origin}/api/chat`
+  : 'https://your-api-project.vercel.app/api/chat';
+
 async function loadPortfolioContext() {
   try {
     const response = await fetch('./portfolio-context.json');
@@ -37,7 +41,7 @@ If the user asks anything unrelated, respond briefly with: "I'm Ashik Raveendran
 }
 
 async function askGroq(message) {
-  const response = await fetch('/api/chat', {
+  const response = await fetch(CHAT_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
