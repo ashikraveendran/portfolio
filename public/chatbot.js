@@ -93,6 +93,11 @@ terminalInput.addEventListener('keydown', async (event) => {
   const message = terminalInput.value.trim();
   if (!message) return;
 
+  // --- DEBUG LOGGING: remove once issue is confirmed fixed ---
+  console.log('[debug] raw input:', JSON.stringify(message));
+  console.log('[debug] identity match:', isIdentityPrompt(message));
+  // --- end debug logging ---
+
   if (message.toLowerCase() === 'clear') {
     clearTerminal();
     return;
@@ -113,11 +118,13 @@ terminalInput.addEventListener('keydown', async (event) => {
 
   try {
     const result = await askGroq(message);
+    console.log('[debug] askGroq raw response:', result); // remove once issue is confirmed fixed
     appendTerminalLine('assistant', result.reply);
     if (result.image) {
       appendTerminalImage(result.image);
     }
   } catch (error) {
+    console.error('[debug] askGroq error:', error); // remove once issue is confirmed fixed
     appendTerminalLine('assistant', 'Sorry, under maintenance.');
   } finally {
     terminalInput.disabled = false;
