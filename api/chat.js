@@ -36,7 +36,7 @@ module.exports = async function handler(req, res) {
     `- Location: ${context.profile.location}`,
     `- Email: ${context.profile.email}`,
     `- Research focus: ${context.profile.researchFocus.join(', ')}`,
-    `- Experience: ${context.profile.experience.join('; ')}`,
+    `- Work experience: ${context.profile['work experience'].join('; ')}`,
     `- Technical skills: ${context.profile.technicalSkills.join(', ')}`,
     `- Projects: ${context.profile.projects.join(', ')}`,
   ].join('\n');
@@ -54,7 +54,7 @@ module.exports = async function handler(req, res) {
           { role: 'system', content: systemText },
           { role: 'user', content: message },
         ],
-        temperature: 0.8,
+        temperature: 0.7,
         max_tokens: 220,
         top_p: 1,
       }),
