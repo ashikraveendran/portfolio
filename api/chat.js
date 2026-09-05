@@ -1,0 +1,67 @@
+const context = require('../portfolio-context.json');
+
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { message } = req.body || {};
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'Message is required.' });
+  }
+
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GROQ_API_KEY is not configured.' });
+  }
+
+  const systemText = [
+    `You are ${context.assistant}.`,
+    '',
+    ...context.instructions,
+    '',
+    'Profile:',
+    `- Name: ${context.profile.name}`,
+    `- Role: ${context.profile.role}`,
+    `- Current education: ${context.profile.currentEducation}`,
+    `- Previous education: ${context.profile.previousEducation}`,
+    `- Location: ${context.profile.location}`,
+    `- Email: ${context.profile.email}`,
+    `- Research focus: ${context.profile.researchFocus.join(', ')}`,
+    `- Experience: ${context.profile.experience.join('; ')}`,
+    `- Technical skills: ${context.profile.technicalSkills.join(', ')}`,
+    `- Projects: ${context.profile.projects.join(', ')}`,
+  ].join('\n');
+
+  try {
+    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-oss-120b',
+        messages: [
+          { role: 'system', content: systemText },
+          { role: 'user', content: message },
+        ],
+        temperature: 0.6,
+        max_tokens: 220,
+        top_p: 1,
+      }),
+    });
+
+    if (!groqResponse.ok) {
+      const text = await groqResponse.text();
+      return res.status(502).json({ error: text || 'Groq request failed.' });
+    }
+
+    const data = await groqResponse.json();
+    const reply = data.choices?.[0]?.message?.content?.trim() || "I'm Ashik Raveendran's portfolio chatbot. I can help with his profile, education, experience, skills, and projects.";
+
+    return res.status(200).json({ reply });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Server error' });
+  }
+};
