@@ -107,7 +107,7 @@ const tabContent = {
         </div>
       </div>
       <section class="resume-section">
-        <p class="about-copy">I am currently working as a Data Scientist, with a strong focus on machine learning, computer vision, and NLP. I have completed my M.Tech in Signal Processing from IISc Bengaluru and have worked on projects related to AI on railway systems, anomaly detection, and Gen-AI.</p>
+        <p class="about-copy">I am currently working as a Data Scientist, with a strong focus on machine learning, computer vision, and NLP. I have completed M.Tech in from IISc Bengaluru.</p>
       </section>
     </div>
   `,
