@@ -8,8 +8,11 @@ const offensiveMessage = 'Wait a minute, WHO ARE YOU!';
 const unrelatedMessage = "I don't know. I'm Ashik Raveendran's portfolio assistant.";
 const portfolioFallback = "I'm Ashik Raveendran's portfolio chatbot. I can help with his profile, education, experience, skills, and projects.";
 const model = 'openai/gpt-oss-120b';
-const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  || process.env.SUPABASE_PUBLISHABLE_KEY
+  || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const supabase = process.env.SUPABASE_URL && supabaseKey
+  ? createClient(process.env.SUPABASE_URL, supabaseKey)
   : null;
 
 async function logChat({ conversationId, message, reply, status = 'success', errorMessage }) {
