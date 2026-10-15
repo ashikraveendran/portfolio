@@ -1,4 +1,6 @@
 const path = require('path');
+const crypto = require('crypto');
+const { createClient } = require('@supabase/supabase-js');
 const context = require(path.join(__dirname, 'portfolio-context.json'));
 
 const permissionDeniedMessage = 'Permission denied.';
@@ -6,6 +8,32 @@ const offensiveMessage = 'Wait a minute, WHO ARE YOU!';
 const unrelatedMessage = "I don't know. I'm Ashik Raveendran's portfolio assistant.";
 const portfolioFallback = "I'm Ashik Raveendran's portfolio chatbot. I can help with his profile, education, experience, skills, and projects.";
 const model = 'openai/gpt-oss-120b';
+const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
+
+async function logChat({ conversationId, message, reply, status = 'success', errorMessage }) {
+  if (!supabase) {
+    console.warn('[api/chat] Supabase logging is not configured');
+    return;
+  }
+
+  try {
+    const { error } = await supabase.from('chat_logs').insert({
+      conversation_id: conversationId,
+      user_message: message,
+      assistant_reply: reply || null,
+      status,
+      error_message: errorMessage || null,
+    });
+
+    if (error) {
+      console.error('[api/chat] Failed to save chat log:', error.message);
+    }
+  } catch (error) {
+    console.error('[api/chat] Supabase logging request failed:', error.message);
+  }
+}
 
 function isRestrictedRequest(message) {
   return /\b(sudo|admin(?:istrator)?|root access|superuser|chmod|rm\s+-rf|bypass(?:\s+security)?|delete all)\b/i.test(message);
@@ -77,21 +105,27 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { message } = req.body || {};
+  const { message, conversationId } = req.body || {};
   if (!message || typeof message !== 'string' || !message.trim()) {
     console.warn('[api/chat] Missing or invalid message body');
     return res.status(400).json({ error: 'Message is required.' });
   }
 
+  const validConversationId = typeof conversationId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(conversationId)
+    ? conversationId
+    : crypto.randomUUID();
+
   console.log('[api/chat] Incoming request:', message.slice(0, 120));
 
   if (isRestrictedRequest(message)) {
     console.warn('[api/chat] Restricted request blocked');
+    await logChat({ conversationId: validConversationId, message, reply: permissionDeniedMessage, status: 'blocked' });
     return res.status(200).json({ reply: permissionDeniedMessage, image: 'whoru.jpg' });
   }
 
   if (isOffensiveRequest(message) && !/\b(suicide|suicidal|kill myself|self[- ]harm)\b/i.test(message)) {
     console.warn('[api/chat] Offensive request redirected');
+    await logChat({ conversationId: validConversationId, message, reply: offensiveMessage, status: 'blocked' });
     return res.status(200).json({ reply: offensiveMessage, image: 'whoru.jpg' });
   }
 
@@ -105,10 +139,12 @@ module.exports = async function handler(req, res) {
     const intent = await classifyMessage(apiKey, message);
     if (intent === 'offensive') {
       console.warn('[api/chat] Semantically offensive request blocked');
+      await logChat({ conversationId: validConversationId, message, reply: offensiveMessage, status: 'blocked' });
       return res.status(200).json({ reply: offensiveMessage, image: 'whoru.jpg' });
     }
     if (intent === 'unrelated') {
       console.log('[api/chat] Semantically unrelated request redirected');
+      await logChat({ conversationId: validConversationId, message, reply: unrelatedMessage, status: 'redirected' });
       return res.status(200).json({ reply: unrelatedMessage, image: 'idk.jpg' });
     }
   } catch (error) {
@@ -163,6 +199,7 @@ module.exports = async function handler(req, res) {
     const reply = data.choices?.[0]?.message?.content?.trim() || portfolioFallback;
     const image = /^i\s+don't\s+know\b/i.test(reply) ? 'idk.jpg' : undefined;
 
+    await logChat({ conversationId: validConversationId, message, reply });
     console.log('[api/chat] Groq reply preview:', reply.slice(0, 120));
     return res.status(200).json({ reply, ...(image ? { image } : {}) });
   } catch (error) {

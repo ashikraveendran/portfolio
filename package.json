@@ -1,4 +1,7 @@
 {
   "name": "ashik-portfolio",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0"
+  }
 }

@@ -1,4 +1,6 @@
 const CHAT_API_URL = '/api/chat';
+const conversationId = sessionStorage.getItem('conversationId') || crypto.randomUUID();
+sessionStorage.setItem('conversationId', conversationId);
 
 async function askGroq(message) {
   const response = await fetch(CHAT_API_URL, {
@@ -6,7 +8,7 @@ async function askGroq(message) {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, conversationId }),
   });
 
   if (!response.ok) {
