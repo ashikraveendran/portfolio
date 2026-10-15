@@ -15,7 +15,7 @@ const supabase = process.env.SUPABASE_URL && supabaseKey
   ? createClient(process.env.SUPABASE_URL, supabaseKey)
   : null;
 
-async function logChat({ conversationId, message, reply, status = 'success', errorMessage }) {
+async function logChat({ conversationId, message, reply, status = 'success', errorMessage, ipAddress }) {
   if (!supabase) {
     console.warn('[api/chat] Supabase logging is not configured');
     return;
@@ -28,6 +28,7 @@ async function logChat({ conversationId, message, reply, status = 'success', err
       assistant_reply: reply || null,
       status,
       error_message: errorMessage || null,
+      ip_address: ipAddress || null,
     });
 
     if (error) {
@@ -117,18 +118,23 @@ module.exports = async function handler(req, res) {
   const validConversationId = typeof conversationId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(conversationId)
     ? conversationId
     : crypto.randomUUID();
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const ipAddress = (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : '')
+    || req.headers['x-real-ip']
+    || req.socket?.remoteAddress
+    || null;
 
   console.log('[api/chat] Incoming request:', message.slice(0, 120));
 
   if (isRestrictedRequest(message)) {
     console.warn('[api/chat] Restricted request blocked');
-    await logChat({ conversationId: validConversationId, message, reply: permissionDeniedMessage, status: 'blocked' });
+    await logChat({ conversationId: validConversationId, message, reply: permissionDeniedMessage, status: 'blocked', ipAddress });
     return res.status(200).json({ reply: permissionDeniedMessage, image: 'whoru.jpg' });
   }
 
   if (isOffensiveRequest(message) && !/\b(suicide|suicidal|kill myself|self[- ]harm)\b/i.test(message)) {
     console.warn('[api/chat] Offensive request redirected');
-    await logChat({ conversationId: validConversationId, message, reply: offensiveMessage, status: 'blocked' });
+    await logChat({ conversationId: validConversationId, message, reply: offensiveMessage, status: 'blocked', ipAddress });
     return res.status(200).json({ reply: offensiveMessage, image: 'whoru.jpg' });
   }
 
@@ -142,12 +148,12 @@ module.exports = async function handler(req, res) {
     const intent = await classifyMessage(apiKey, message);
     if (intent === 'offensive') {
       console.warn('[api/chat] Semantically offensive request blocked');
-      await logChat({ conversationId: validConversationId, message, reply: offensiveMessage, status: 'blocked' });
+      await logChat({ conversationId: validConversationId, message, reply: offensiveMessage, status: 'blocked', ipAddress });
       return res.status(200).json({ reply: offensiveMessage, image: 'whoru.jpg' });
     }
     if (intent === 'unrelated') {
       console.log('[api/chat] Semantically unrelated request redirected');
-      await logChat({ conversationId: validConversationId, message, reply: unrelatedMessage, status: 'redirected' });
+      await logChat({ conversationId: validConversationId, message, reply: unrelatedMessage, status: 'redirected', ipAddress });
       return res.status(200).json({ reply: unrelatedMessage, image: 'idk.jpg' });
     }
   } catch (error) {
@@ -202,7 +208,7 @@ module.exports = async function handler(req, res) {
     const reply = data.choices?.[0]?.message?.content?.trim() || portfolioFallback;
     const image = /^i\s+don't\s+know\b/i.test(reply) ? 'idk.jpg' : undefined;
 
-    await logChat({ conversationId: validConversationId, message, reply });
+    await logChat({ conversationId: validConversationId, message, reply, ipAddress });
     console.log('[api/chat] Groq reply preview:', reply.slice(0, 120));
     return res.status(200).json({ reply, ...(image ? { image } : {}) });
   } catch (error) {
